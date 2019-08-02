@@ -1,10 +1,12 @@
 ![Banner](https://cdn.discordapp.com/attachments/600914805619949588/606957684511604747/WumpusScience606957633097695262_Wumpus_Suggester.png)
 # Table Of Contents
-- [Important Links](https://github.com/xPolar/WumpusMod#important-links)
+- [Important Links](https://github.com/xPolar/WumpusModSuggester#important-links)
 
-- [Commands](https://github.com/xPolar/WumpusMod#commands)
+- [Commands](https://github.com/xPolar/WumpusModSuggester#commands)
 
-- [Required Permissions](https://github.com/xPolar/WumpusMod#required-permissions)
+- [Required Permissions](https://github.com/xPolar/WumpusSuggester#required-permissions)
+
+- [Why isn't the bot approving my suggestion?](https://github.com/xPolar/WumpusSuggester#suggestion-not-found)
 
 - [Selfhosting](https://github.com/xPolar/WumpusMod#selfhosting)
 
@@ -48,6 +50,9 @@ WumpusSuggester's default prefix is `s!`
 | ---------- | ------ |
 | Embed Links | Embeds |
 | Read and Send Message(s) | DUH |
+
+# Suggestion not found
+To approve / deny or do anything to a suggestion you **must** use the accept / deny commands in the suggestion channel.
 
 # Selfhosting
 **Selfhosting for WumpusSuggester is allowed but support will not be provided, if you break the bot do not expect for the support team to fix it.**
