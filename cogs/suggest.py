@@ -14,7 +14,7 @@ class suggest(commands.Cog):
         self.implemented = 0x6633ff
 
     @commands.command()
-    @commands.cooldown(rate = 1, per = 600, type = commands.BucketType.member)
+    @commands.cooldown(rate = 1, per = 300, type = commands.BucketType.member)
     async def suggest(self, ctx, *, suggestion = None):
         if suggestion == None:
             embed = discord.Embed(
@@ -24,17 +24,17 @@ class suggest(commands.Cog):
             )
             await ctx.send(embed = embed, delete_after = 5.0)
         else:
-            with open(r"SUGGESTIONCHANNELSJSONFILEPATHHERE", "r") as f:
+            with open(r"SUGGESTIONCHANNELJSONPATHHERE", "r") as f:
                 suggestion_channels = json.load(f)
-            with open(r"SUGGESTIONLOGCHANNELJSONFILEPATHHERE", "r") as f:
+            with open(r"SUGGESTIONLOGCHANNELJSONPATHHERE", "r") as f:
                 suggestion_log_channels = json.load(f)
-            with open(r"STAFFROLESJSONFILEPATHHERE", "r") as f:
+            with open(r"STAFFROLESJSONPATHHERE", "r") as f:
                 staff_roles = json.load(f)
-            with open(r"SUGGESTIONSJSONFILEPATHHERE", "r") as f:
+            with open(r"SUGGESTIONCHANNELJSONPATHHERE", "r") as f:
                 suggestions = json.load(f)
-            with open(r"RESULTSJSONFILEPATHHERE", "r") as f:
+            with open(r"RESULTSJSONPATHHERE", "r") as f:
                 results = json.load(f)
-            with open(r"SUGGESTERSJSONFILEPATHHERE", "r") as f:
+            with open(r"SUGGESTERSJSONPATHHERE", "r") as f:
                 suggesters = json.load(f)
             if str(ctx.message.guild.id) not in suggestion_channels:
                 embed = discord.Embed(
@@ -54,11 +54,11 @@ class suggest(commands.Cog):
                 suggestions[str(msg.id)] = suggestion
                 results[str(msg.id)] = "pending"
                 suggesters[str(msg.id)] = ctx.message.author.id
-                with open(r"SUGGESTERSJSONFILEPATHHERE", "w") as f:
+                with open(r"SUGGESTERSJSONPATHHERE", "w") as f:
                     json.dump(suggesters, f, indent = 4)
-                with open(r"SUGGESTIONSJSONFILEPATHHERE", "w") as f:
+                with open(r"SUGGESTIONCHANNELJSONPATHHERE", "w") as f:
                     json.dump(suggestions, f, indent = 4)
-                with open(r"RESULTSJSONFILEPATHHERE", "w") as f:
+                with open(r"RESULTSJSONPATHHERE", "w") as f:
                     json.dump(results, f, indent = 4)
                 embed = discord.Embed(
                     description = f"**Suggester**\n{ctx.message.author.mention}\n\n**Suggestion**\n{suggestion}",
@@ -81,23 +81,23 @@ class suggest(commands.Cog):
 
     @commands.command(aliases = ["accept"])
     async def approve(self, ctx, suggestion_id : discord.Message = None, *, reason = None):
-        with open(r"SUGGESTIONSJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTIONCHANNELJSONPATHHERE", "r") as f:
             suggestions = json.load(f)
-        with open(r"SUGGESTIONLOGCHANNELJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTIONLOGCHANNELJSONPATHHERE", "r") as f:
             suggestion_log_channels = json.load(f)
-        with open(r"STAFFROLESJSONFILEPATHHERE", "r") as f:
+        with open(r"STAFFROLESJSONPATHHERE", "r") as f:
             staff_roles = json.load(f)
-        with open(r"RESULTSJSONFILEPATHHERE", "r") as f:
+        with open(r"RESULTSJSONPATHHERE", "r") as f:
             results = json.load(f)
-        with open(r"REASONSJSONFILEPATHHERE", "r") as f:
+        with open(r"REASONSJSONPATHHERE", "r") as f:
             reasons = json.load(f)
-        with open(r"SUGGESTERSJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTERSJSONPATHHERE", "r") as f:
             suggesters = json.load(f)
-        with open(r"NOTESJSONFILEPATHHERE", "r") as f:
+        with open(r"NOTESJSONPATHHERE", "r") as f:
             notes = json.load(f)
-        with open(r"NOTERSJSONFILEPATHHERE", "r") as f:
+        with open(r"NOTERSJSONPATHHERE", "r") as f:
             noters = json.load(f)
-        with open(r"RESULTERSJSONFILEPATHHERE","r") as f:
+        with open(r"RESULTERSJSONPATHHERE","r") as f:
             resulters = json.load(f)
         if str(ctx.message.guild.id) not in staff_roles:
             embed = discord.Embed(
@@ -136,9 +136,9 @@ class suggest(commands.Cog):
                     else:
                         resulters[str(suggestion_id)] = ctx.message.author.id
                         results[str(suggestion_id)] = "approved"
-                        with open(r"RESULTERSJSONFILEPATHHERE", "w") as f:
+                        with open(r"RESULTERSJSONPATHHERE", "w") as f:
                             json.dump(resulters, f, indent = 4)
-                        with open(r"RESULTSJSONFILEPATHHERE", "w") as f:
+                        with open(r"RESULTSJSONPATHHERE", "w") as f:
                             json.dump(results, f, indent = 4)
                         suggestion = suggestions[str(suggestion_id)]
                         suggestion_msg = await ctx.fetch_message(id = suggestion_id)
@@ -224,25 +224,36 @@ class suggest(commands.Cog):
                                     embed.set_footer(text = f"Suggestion ID {suggestion_id}")
                                     await suggestion_msg.edit(embed = embed)
 
+    @suggest.error
+    async def suggest_error(self, ctx, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            embed = discord.Embed(
+            title = "Cooldown",
+            description = f"You can only suggest every five minutes! Try again in {int(error.retry_after)}s.",
+            color = self.errorcolor
+            )
+            await ctx.send(embed = embed, delete_after = 5.0)
+            await ctx.message.delete()
+
     @commands.command()
     async def deny(self, ctx, suggestion_id : discord.Message = None, *, reason = None):
-        with open(r"SUGGESTIONSJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTIONCHANNELJSONPATHHERE", "r") as f:
             suggestions = json.load(f)
-        with open(r"SUGGESTIONLOGCHANNELJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTIONLOGCHANNELJSONPATHHERE", "r") as f:
             suggestion_log_channels = json.load(f)
-        with open(r"STAFFROLESJSONFILEPATHHERE", "r") as f:
+        with open(r"STAFFROLESJSONPATHHERE", "r") as f:
             staff_roles = json.load(f)
-        with open(r"RESULTSJSONFILEPATHHERE", "r") as f:
+        with open(r"RESULTSJSONPATHHERE", "r") as f:
             results = json.load(f)
-        with open(r"REASONSJSONFILEPATHHERE", "r") as f:
+        with open(r"REASONSJSONPATHHERE", "r") as f:
             reasons = json.load(f)
-        with open(r"SUGGESTERSJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTERSJSONPATHHERE", "r") as f:
             suggesters = json.load(f)
-        with open(r"NOTESJSONFILEPATHHERE", "r") as f:
+        with open(r"NOTESJSONPATHHERE", "r") as f:
             notes = json.load(f)
-        with open(r"NOTERSJSONFILEPATHHERE", "r") as f:
+        with open(r"NOTERSJSONPATHHERE", "r") as f:
             noters = json.load(f)
-        with open(r"RESULTERSJSONFILEPATHHERE","r") as f:
+        with open(r"RESULTERSJSONPATHHERE","r") as f:
             resulters = json.load(f)
         if str(ctx.message.guild.id) not in staff_roles:
             embed = discord.Embed(
@@ -281,9 +292,9 @@ class suggest(commands.Cog):
                     else:
                         resulters[str(suggestion_id)] = ctx.message.author.id
                         results[str(suggestion_id)] = "denied"
-                        with open(r"RESULTERSJSONFILEPATHHERE", "w") as f:
+                        with open(r"RESULTERSJSONPATHHERE", "w") as f:
                             json.dump(resulters, f, indent = 4)
-                        with open(r"RESULTSJSONFILEPATHHERE", "w") as f:
+                        with open(r"RESULTSJSONPATHHERE", "w") as f:
                             json.dump(results, f, indent = 4)
                         suggestion = suggestions[str(suggestion_id)]
                         suggestion_msg = await ctx.fetch_message(id = suggestion_id)
@@ -371,23 +382,23 @@ class suggest(commands.Cog):
 
     @commands.command(aliases = ["maybe"])
     async def consider(self, ctx, suggestion_id : discord.Message = None, *, reason = None):
-        with open(r"SUGGESTIONSJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTIONCHANNELJSONPATHHERE", "r") as f:
             suggestions = json.load(f)
-        with open(r"SUGGESTIONLOGCHANNELJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTIONLOGCHANNELJSONPATHHERE", "r") as f:
             suggestion_log_channels = json.load(f)
-        with open(r"STAFFROLESJSONFILEPATHHERE", "r") as f:
+        with open(r"STAFFROLESJSONPATHHERE", "r") as f:
             staff_roles = json.load(f)
-        with open(r"RESULTSJSONFILEPATHHERE", "r") as f:
+        with open(r"RESULTSJSONPATHHERE", "r") as f:
             results = json.load(f)
-        with open(r"REASONSJSONFILEPATHHERE", "r") as f:
+        with open(r"REASONSJSONPATHHERE", "r") as f:
             reasons = json.load(f)
-        with open(r"SUGGESTERSJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTERSJSONPATHHERE", "r") as f:
             suggesters = json.load(f)
-        with open(r"NOTESJSONFILEPATHHERE", "r") as f:
+        with open(r"NOTESJSONPATHHERE", "r") as f:
             notes = json.load(f)
-        with open(r"NOTERSJSONFILEPATHHERE", "r") as f:
+        with open(r"NOTERSJSONPATHHERE", "r") as f:
             noters = json.load(f)
-        with open(r"RESULTERSJSONFILEPATHHERE","r") as f:
+        with open(r"RESULTERSJSONPATHHERE","r") as f:
             resulters = json.load(f)
         if str(ctx.message.guild.id) not in staff_roles:
             embed = discord.Embed(
@@ -426,9 +437,9 @@ class suggest(commands.Cog):
                     else:
                         resulters[str(suggestion_id)] = ctx.message.author.id
                         results[str(suggestion_id)] = "considered"
-                        with open(r"RESULTERSJSONFILEPATHHERE", "w") as f:
+                        with open(r"RESULTERSJSONPATHHERE", "w") as f:
                             json.dump(resulters, f, indent = 4)
-                        with open(r"RESULTSJSONFILEPATHHERE", "w") as f:
+                        with open(r"RESULTSJSONPATHHERE", "w") as f:
                             json.dump(results, f, indent = 4)
                         suggestion = suggestions[str(suggestion_id)]
                         suggestion_msg = await ctx.fetch_message(id = suggestion_id)
@@ -516,23 +527,23 @@ class suggest(commands.Cog):
 
     @commands.command()
     async def implement(self, ctx, suggestion_id : discord.Message = None, *, reason = None):
-        with open(r"SUGGESTIONSJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTIONCHANNELJSONPATHHERE", "r") as f:
             suggestions = json.load(f)
-        with open(r"SUGGESTIONLOGCHANNELJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTIONLOGCHANNELJSONPATHHERE", "r") as f:
             suggestion_log_channels = json.load(f)
-        with open(r"STAFFROLESJSONFILEPATHHERE", "r") as f:
+        with open(r"STAFFROLESJSONPATHHERE", "r") as f:
             staff_roles = json.load(f)
-        with open(r"RESULTSJSONFILEPATHHERE", "r") as f:
+        with open(r"RESULTSJSONPATHHERE", "r") as f:
             results = json.load(f)
-        with open(r"REASONSJSONFILEPATHHERE", "r") as f:
+        with open(r"REASONSJSONPATHHERE", "r") as f:
             reasons = json.load(f)
-        with open(r"SUGGESTERSJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTERSJSONPATHHERE", "r") as f:
             suggesters = json.load(f)
-        with open(r"NOTESJSONFILEPATHHERE", "r") as f:
+        with open(r"NOTESJSONPATHHERE", "r") as f:
             notes = json.load(f)
-        with open(r"NOTERSJSONFILEPATHHERE", "r") as f:
+        with open(r"NOTERSJSONPATHHERE", "r") as f:
             noters = json.load(f)
-        with open(r"RESULTERSJSONFILEPATHHERE","r") as f:
+        with open(r"RESULTERSJSONPATHHERE","r") as f:
             resulters = json.load(f)
         if str(ctx.message.guild.id) not in staff_roles:
             embed = discord.Embed(
@@ -571,9 +582,9 @@ class suggest(commands.Cog):
                     else:
                         resulters[str(suggestion_id)] = ctx.message.author.id
                         results[str(suggestion_id)] = "implemented"
-                        with open(r"RESULTERSJSONFILEPATHHERE", "w") as f:
+                        with open(r"RESULTERSJSONPATHHERE", "w") as f:
                             json.dump(resulters, f, indent = 4)
-                        with open(r"RESULTSJSONFILEPATHHERE", "w") as f:
+                        with open(r"RESULTSJSONPATHHERE", "w") as f:
                             json.dump(results, f, indent = 4)
                         suggestion = suggestions[str(suggestion_id)]
                         suggestion_msg = await ctx.fetch_message(id = suggestion_id)
@@ -661,23 +672,23 @@ class suggest(commands.Cog):
 
     @commands.command()
     async def note(self, ctx, suggestion_id : discord.Message = None, *, note = None):
-        with open(r"SUGGESTIONSJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTIONCHANNELJSONPATHHERE", "r") as f:
             suggestions = json.load(f)
-        with open(r"SUGGESTIONLOGCHANNELJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTIONLOGCHANNELJSONPATHHERE", "r") as f:
             suggestion_log_channels = json.load(f)
-        with open(r"STAFFROLESJSONFILEPATHHERE", "r") as f:
+        with open(r"STAFFROLESJSONPATHHERE", "r") as f:
             staff_roles = json.load(f)
-        with open(r"RESULTSJSONFILEPATHHERE", "r") as f:
+        with open(r"RESULTSJSONPATHHERE", "r") as f:
             results = json.load(f)
-        with open(r"REASONSJSONFILEPATHHERE", "r") as f:
+        with open(r"REASONSJSONPATHHERE", "r") as f:
             reasons = json.load(f)
-        with open(r"SUGGESTERSJSONFILEPATHHERE", "r") as f:
+        with open(r"SUGGESTERSJSONPATHHERE", "r") as f:
             suggesters = json.load(f)
-        with open(r"NOTESJSONFILEPATHHERE", "r") as f:
+        with open(r"NOTESJSONPATHHERE", "r") as f:
             notes = json.load(f)
-        with open(r"NOTERSJSONFILEPATHHERE", "r") as f:
+        with open(r"NOTERSJSONPATHHERE", "r") as f:
             noters = json.load(f)
-        with open(r"RESULTERSJSONFILEPATHHERE", "r") as f:
+        with open(r"RESULTERSJSONPATHHERE", "r") as f:
             resulters = json.load(f)
         if str(ctx.message.guild.id) not in staff_roles:
             embed = discord.Embed(
@@ -725,10 +736,10 @@ class suggest(commands.Cog):
                             embed.set_footer(text = f"Suggestion ID {suggestion_id}")
                             await suggestion_msg.edit(embed = embed)
                             notes[str(suggestion_id)] = note
-                            with open(r"NOTESJSONFILEPATHHERE", "w") as f:
+                            with open(r"NOTESJSONPATHHERE", "w") as f:
                                 json.dump(notes, f, indent = 4)
                             noters[str(suggestion_id)] = str(ctx.message.author.id)
-                            with open(r"NOTERSJSONFILEPATHHERE", "w") as f:
+                            with open(r"NOTERSJSONPATHHERE", "w") as f:
                                 json.dump(noters, f, indent = 4)
                         else:
                             resulter = resulters[str(suggestion_id)]
@@ -743,10 +754,10 @@ class suggest(commands.Cog):
                                     embed.set_footer(text = f"Suggestion ID {suggestion_id}")
                                     await suggestion_msg.edit(embed = embed)
                                     notes[str(suggestion_id)] = note
-                                    with open(r"NOTESJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTESJSONPATHHERE", "w") as f:
                                         json.dump(notes, f, indent = 4)
                                     noters[str(suggestion_id)] = str(ctx.message.author.id)
-                                    with open(r"NOTERSJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTERSJSONPATHHERE", "w") as f:
                                         json.dump(noters, f, indent = 4)
                                 if result == "considered":
                                     embed = discord.Embed(
@@ -758,10 +769,10 @@ class suggest(commands.Cog):
                                     embed.set_footer(text = f"Suggestion ID {suggestion_id}")
                                     await suggestion_msg.edit(embed = embed)
                                     notes[str(suggestion_id)] = note
-                                    with open(r"NOTESJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTESJSONPATHHERE", "w") as f:
                                         json.dump(notes, f, indent = 4)
                                     noters[str(suggestion_id)] = str(ctx.message.author.id)
-                                    with open(r"NOTERSJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTERSJSONPATHHERE", "w") as f:
                                         json.dump(noters, f, indent = 4)
                                 if result == "implemented":
                                     embed = discord.Embed(
@@ -773,10 +784,10 @@ class suggest(commands.Cog):
                                     embed.set_footer(text = f"Suggestion ID {suggestion_id}")
                                     await suggestion_msg.edit(embed = embed)
                                     notes[str(suggestion_id)] = note
-                                    with open(r"NOTESJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTESJSONPATHHERE", "w") as f:
                                         json.dump(notes, f, indent = 4)
                                     noters[str(suggestion_id)] = str(ctx.message.author.id)
-                                    with open(r"NOTERSJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTERSJSONPATHHERE", "w") as f:
                                         json.dump(noters, f, indent = 4)
                             else:
                                 reason = reasons[str(suggestion_id)]
@@ -790,10 +801,10 @@ class suggest(commands.Cog):
                                     embed.set_footer(text = f"Suggestion ID {suggestion_id}")
                                     await suggestion_msg.edit(embed = embed)
                                     notes[str(suggestion_id)] = note
-                                    with open(r"NOTESJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTESJSONPATHHERE", "w") as f:
                                         json.dump(notes, f, indent = 4)
                                     noters[str(suggestion_id)] = str(ctx.message.author.id)
-                                    with open(r"NOTERSJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTERSJSONPATHHERE", "w") as f:
                                         json.dump(noters, f, indent = 4)
                                 if result == "considered":
                                     embed = discord.Embed(
@@ -805,10 +816,10 @@ class suggest(commands.Cog):
                                     embed.set_footer(text = f"Suggestion ID {suggestion_id}")
                                     await suggestion_msg.edit(embed = embed)
                                     notes[str(suggestion_id)] = note
-                                    with open(r"NOTESJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTESJSONPATHHERE", "w") as f:
                                         json.dump(notes, f, indent = 4)
                                     noters[str(suggestion_id)] = str(ctx.message.author.id)
-                                    with open(r"NOTERSJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTERSJSONPATHHERE", "w") as f:
                                         json.dump(noters, f, indent = 4)
                                 if result == "implemented":
                                     embed = discord.Embed(
@@ -820,10 +831,10 @@ class suggest(commands.Cog):
                                     embed.set_footer(text = f"Suggestion ID {suggestion_id}")
                                     await suggestion_msg.edit(embed = embed)
                                     notes[str(suggestion_id)] = note
-                                    with open(r"NOTESJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTESJSONPATHHERE", "w") as f:
                                         json.dump(notes, f, indent = 4)
                                     noters[str(suggestion_id)] = str(ctx.message.author.id)
-                                    with open(r"NOTERSJSONFILEPATHHERE", "w") as f:
+                                    with open(r"NOTERSJSONPATHHERE", "w") as f:
                                         json.dump(noters, f, indent = 4)
 
     @commands.command()
@@ -837,7 +848,7 @@ class suggest(commands.Cog):
             )
             await ctx.send(embed = embed)
         else:
-            with open(r"SUGGESTIONCHANNELSJSONFILEPATHHERE", "r") as f:
+            with open(r"SUGGESTIONCHANNELJSONPATHHERE", "r") as f:
                 suggestion_channels = json.load(f)
             suggestion_channels[str(ctx.guild.id)] = channel.id
             embed = discord.Embed(
@@ -846,7 +857,7 @@ class suggest(commands.Cog):
                 color = self.blurple
             )
             await ctx.send(embed = embed)
-            with open(r"SUGGESTIONCHANNELSJSONFILEPATHHERE", "w") as f:
+            with open(r"SUGGESTIONCHANNELJSONPATHHERE", "w") as f:
                 json.dump(suggestion_channels, f, indent = 4)
 
     @suggestionchannel.error
@@ -871,7 +882,7 @@ class suggest(commands.Cog):
             )
             await ctx.send(embed = embed)
         else:
-            with open(r"SUGGESTIONLOGCHANNELJSONFILEPATHHERE", "r") as f:
+            with open(r"SUGGESTIONLOGCHANNELJSONPATHHERE", "r") as f:
                 suggestion_log_channels = json.load(f)
             suggestion_log_channels[str(ctx.guild.id)] = channel.id
             embed = discord.Embed(
@@ -880,7 +891,7 @@ class suggest(commands.Cog):
                 color = self.blurple
             )
             await ctx.send(embed = embed)
-            with open(r"SUGGESTIONLOGCHANNELJSONFILEPATHHERE", "w") as f:
+            with open(r"SUGGESTIONLOGCHANNELJSONPATHHERE", "w") as f:
                 json.dump(suggestion_log_channels, f, indent = 4)
 
     @suggestionlogchannel.error
@@ -905,7 +916,7 @@ class suggest(commands.Cog):
             )
             await ctx.send(embed = embed)
         else:
-            with open(r"STAFFROLESJSONFILEPATHHERE", "r") as f:
+            with open(r"STAFFROLESJSONPATHHERE", "r") as f:
                 staff_roles = json.load(f)
             staff_roles[str(ctx.guild.id)] = role.id
             embed = discord.Embed(
@@ -914,7 +925,7 @@ class suggest(commands.Cog):
                 color = self.blurple
             )
             await ctx.send(embed = embed)
-            with open(r"STAFFROLESJSONFILEPATHHERE", "w") as f:
+            with open(r"STAFFROLESJSONPATHHERE", "w") as f:
                 json.dump(staff_roles, f, indent = 4)
 
     @staffrole.error
