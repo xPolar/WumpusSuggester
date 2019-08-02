@@ -1,4 +1,4 @@
-![Banner](https://cdn.discordapp.com/attachments/596970827103207446/597630581873836042/WumpusCop597582790040485929_WumpusMod.png)
+![Banner](https://cdn.discordapp.com/attachments/600914805619949588/606957684511604747/WumpusScience606957633097695262_Wumpus_Suggester.png)
 # Table Of Contents
 - [Important Links](https://github.com/xPolar/WumpusMod#important-links)
 
