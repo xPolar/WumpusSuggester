@@ -1,283 +1,257 @@
+import asyncio
 import datetime
 import discord
 from discord.ext import commands
+import itertools
+import json
+from paginator import Pages
+import time
 
-class other(commands.Cog):
+class HelpPaginator(Pages):
+    def __init__(self, help_command, ctx, entries, *, per_page=4):
+        super().__init__(ctx, entries=entries, per_page=per_page)
+        self.reaction_emojis.append(('\N{WHITE QUESTION MARK ORNAMENT}', self.show_bot_help))
+        self.total = len(entries)
+        self.help_command = help_command
+        self.prefix = help_command.clean_prefix
+
+    def get_bot_page(self, page):
+        cog, description, commands = self.entries[page - 1]
+        self.title = f'{cog} Commands'
+        self.description = description
+        return commands
+
+    def prepare_embed(self, entries, page, *, first=False):
+        self.embed.clear_fields()
+        self.embed.description = self.description
+        self.embed.title = self.title
+
+        self.embed.set_footer(text=f'Use "{self.prefix}help [Command]" for more info on a command.')
+
+        for entry in entries:
+            signature = f'{self.prefix}{entry.qualified_name} {entry.signature}'
+            self.embed.add_field(name=signature, value=entry.short_doc or "No help given", inline=False)
+
+        if self.maximum_pages:
+            self.embed.set_author(name=f'Page {page}/{self.maximum_pages} ({self.total} commands)')
+
+    async def show_bot_help(self):
+        """Shows how to use the bot"""
+
+        self.embed.title = 'Using the bot'
+        self.embed.description = 'Hello! Welcome to the help page.'
+        self.embed.clear_fields()
+
+        entries = (
+            ('<argument>', 'This means the argument is __**required**__.'),
+            ('[argument]', 'This means the argument is __**optional**__.'),
+            ('[A|B]', 'This means the it can be __**either A or B**__.'),
+            ('[argument...]', 'This means you can have multiple arguments.\n'
+                              'Now that you know the basics, it should be noted that...\n'
+                              '__**You do not type in the brackets!**__')
+        )
+
+        self.embed.add_field(name='How do I use this bot?', value='Reading the bot signature is pretty simple.')
+
+        for name, value in entries:
+            self.embed.add_field(name=name, value=value, inline=False)
+
+        self.embed.set_footer(text=f'We were on page {self.current_page} before this message.')
+        await self.message.edit(embed=self.embed)
+
+        async def go_back_to_current_page():
+            await asyncio.sleep(30.0)
+            await self.show_current_page()
+
+        self.bot.loop.create_task(go_back_to_current_page())
+
+
+class PaginatedHelpCommand(commands.HelpCommand):
+    def __init__(self):
+        super().__init__(command_attrs={
+            'cooldown': commands.Cooldown(1, 3.0, commands.BucketType.member),
+            'help': 'Shows help about the bot, a command, or a category'
+        })
+
+    async def on_help_command_error(self, ctx, error):
+        if isinstance(error, commands.CommandInvokeError):
+            await ctx.send(str(error.original))
+
+    def get_command_signature(self, command):
+        parent = command.full_parent_name
+        if len(command.aliases) > 0:
+            aliases = '|'.join(command.aliases)
+            fmt = f'[{command.name}|{aliases}]'
+            if parent:
+                fmt = f'{parent} {fmt}'
+            alias = fmt
+        else:
+            alias = command.name if not parent else f'{parent} {command.name}'
+        return f'{alias} {command.signature}'
+
+    async def send_bot_help(self, mapping):
+        def key(c):
+            return c.cog_name or '\u200bBot Owner'
+
+        bot = self.context.bot
+        entries = await self.filter_commands(bot.commands, sort=True, key=key)
+        nested_pages = []
+        per_page = 8
+        total = 0
+
+        for cog, commands in itertools.groupby(entries, key=key):
+            commands = sorted(commands, key=lambda c: c.name)
+            if len(commands) == 0:
+                continue
+
+            total += len(commands)
+            actual_cog = bot.get_cog(cog)
+            # get the description if it exists (and the cog is valid) or return Empty embed.
+            description = (actual_cog and actual_cog.description) or discord.Embed.Empty
+            nested_pages.extend((cog, description, commands[i:i + per_page]) for i in range(0, len(commands), per_page))
+
+        # a value of 1 forces the pagination session
+        pages = HelpPaginator(self, self.context, nested_pages, per_page=1)
+
+        # swap the get_page implementation to work with our nested pages.
+        pages.get_page = pages.get_bot_page
+        pages.total = total
+
+        await pages.paginate()
+
+    async def send_cog_help(self, cog):
+        entries = await self.filter_commands(cog.get_commands(), sort=True)
+        pages = HelpPaginator(self, self.context, entries)
+        pages.title = f'{cog.qualified_name} Commands'
+        pages.description = cog.description
+
+        await pages.paginate()
+
+    def common_command_formatting(self, page_or_embed, command):
+        page_or_embed.title = self.get_command_signature(command)
+        if command.description:
+            page_or_embed.description = f'{command.description}\n\n{command.help}'
+        else:
+            page_or_embed.description = command.help or 'No help found...'
+
+    async def send_command_help(self, command):
+        # No pagination necessary for a single command.
+        embed = discord.Embed(color= 0x7289DA)
+        self.common_command_formatting(embed, command)
+        await self.context.send(embed=embed)
+
+    async def send_group_help(self, group):
+        subcommands = group.commands
+        if len(subcommands) == 0:
+            return await self.send_command_help(group)
+
+        entries = await self.filter_commands(subcommands, sort=True)
+        pages = HelpPaginator(self, self.context, entries)
+        self.common_command_formatting(pages, group)
+
+        await pages.paginate()
+
+class Other(commands.Cog):
+
+
 
     def __init__(self, bot):
         self.bot = bot
         self.errorcolor = 0xFF2B2B
         self.blurple = 0x7289DA
+        self.bot = bot
+        self.old_help_command = bot.help_command
+        bot.help_command = PaginatedHelpCommand()
+        bot.help_command.cog = self
+        self.color = 0x7289DA
+        self.bot.launch_time = datetime.datetime.utcnow()
+
+        def cog_unload(self):
+            self.bot.help_command = self.old_help_command
 
     @commands.command()
     @commands.has_permissions(manage_guild = True)
-    async def prefix(self, ctx, *, pre):
-        with open(r"PREFIXESJSONFILEPATHHERE", "r") as f:
-            prefixes = json.load(f)
-
-        prefixes[str(ctx.guild.id)] = pre
-        embed = discord.Embed(
-            title = "Prefix",
-            description = f"{ctx.message.guild}'s prefix is  now `{pre}`",
-            color = self.blurple
-        )
-        await ctx.send(embed = embed)
-
-        with open(r"PREFIXESJSONFILEPATHHERE", "w") as f:
-            json.dump(prefixes, f, indent = 4)
-
-    @commands.command()
-    async def help(self, ctx, module = None):
-        if message.guild == None:
-            pass
-        else:
-            with open(r"PREFIXESJSONFILEPATHHERE", "r") as f:
+    async def prefix(self, ctx, *, prefix):
+        """
+        Set the servers prefix.
+        """
+        if ctx.message.author.id == ctx.guild.owner.id:
+            with open(r"PATHHERE\WumpusSuggester\prefixes.json", "r") as f:
                 prefixes = json.load(f)
-            if str(message.guild.id) not in prefixes:
-                prefix = "s!"
-            else:
-                prefix = prefixes[str(message.guild.id)]
-        if module == None:
+
+            prefixes[str(ctx.guild.id)] = prefix
             embed = discord.Embed(
-                title = "Suggestion",
-                description = "`9 total commands`",
-                timestamp = datetime.datetime.utcnow(),
+                title = "Prefix",
+                description = f"{ctx.message.guild}'s prefix is  now `{prefix}`",
                 color = self.blurple
             )
-            embed.set_author(name = "Categorys")
-            embed.add_field(name = "Other", value = "`6 total commands`")
-            embed.footer(text = f"For more information on each category do {prefix}help (Category)")
             await ctx.send(embed = embed)
-        else:
-            if module.lower() == "suggestion":
-                embed = discord.Embed(
-                    title = "Commands",
-                    description = "**Suggest** - Make a suggestion.\n**Approve / Accept** - Approve a suggestion.\n**Deny** - Deny a suggestion.\n**Consider / Maybe** - Consider a suggestion.\n**Implement** - Implement a suggestion.\n**Note** - Add a note to a suggestion.\n**Suggestionchannel** - Set the channel where suggestions are sent.\n**Suggestionlogchannel** - Set the channel where all suggestion related actions will be sent.\n**Staffrole** - Set the role which can accept, deny, etc to suggestions.\n**",
-                    timestamp = datetime.datetime.utcnow(),
-                    color = self.blurple
-                )
-                embed.set_author(name = "Suggestion")
-                embed.footer(text = f"For more information on each command do {prefix}help (Command)")
-                await ctx.send(embed = embed)
-            elif module.lower() == "other":
-                embed = discord.Embed(
-                    title = "Commands",
-                    descripton = "**Help** - Shows this message.\n**Prefix** - Set the bot's prefix.\n**Support** - Send a link to the support server.\n**Invite** - Send a link to invite the bot.\n**Github** - Send a link to view the github.\n**Leave** - Makes the bot leave the server so you don't have to kick it.\n**Ping** - Shows the bot's current ping.",
-                    timestamp = datetime.datetime.utcnow(),
-                    color = self.blurple
-                )
-                embed.set_author(name = "Other")
-                embed.footer(text = f"For more information on each command do {prefix}help (Command)")
-            else:
-                if module.lower() == "suggest":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Make a suggestion to the current server you are in.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Suggest")
-                    embed.add_field(name = "Usage", value = f"{prefix}suggest (Suggestion)")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "approve" or module.lower() == "accept":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Mark a suggestion as approved.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Approve")
-                    embed.add_field(name = "Usage", value = f"{prefix}approve (Suggestion ID) (Reason)")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "deny":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Mark a suggestion as denied.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Deny")
-                    embed.add_field(name = "Usage", value = f"{prefix}deny (Suggestion ID) (Reason)")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "consider" or module.lower() == "maybe":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Mark a suggestion as considered.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Consider")
-                    embed.add_field(name = "Usage", value = f"{prefix}consider (Suggestion ID) (Reason)")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "implement":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Mark a suggestion as implemented.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Implement")
-                    embed.add_field(name = "Usage", value = f"{prefix}implement (Suggestion ID) (Reason)")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "note":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Add a note to a suggestion.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Note")
-                    embed.add_field(name = "Usage", value = f"{prefix}note (Suggestion ID) (Note)")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "suggestionchannel":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Set which channel suggestions should be sent to.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Suggestionchannel")
-                    embed.add_field(name = "Usage", value = f"{prefix}suggestionchannel (Channel)")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "suggestionlogchannel":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Set which channel suggestion related logs should be sent to.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Suggestionlogchannel")
-                    embed.add_field(name = "Usage", value = f"{prefix}suggestionlogchannel (Channel)")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "staffrole":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Set which role can deny and accept suggestions.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Staffrole")
-                    embed.add_field(name = "Usage", value = f"{prefix}staffrole (Role)")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "prefix":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Set the server's prefix.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Prefix")
-                    embed.add_field(name = "Usage", value = f"{prefix}prefix (New Prefix)")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "support":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Send an invite link to the support server.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Support")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "invite":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Send an invite link to invite the bot.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Invite")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "github":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Send a link to view the Github.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Github")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
-                elif module.lower() == "leave":
-                    embed = discord.Embed(
-                        title = "Description",
-                        description = "Makes the bot leave the server so you don't have to kick it.",
-                        timestamp = datetime.datetime.utcnow(),
-                        color = self.blurple
-                    )
-                    embed.set_author(name = "Leave")
-                    embed.set_footer(name = f"For more help feel free to join the support server with {prefix}support!")
-                    await ctx.send(embed = embed)
 
-    @commands.command()
-    async def invite(self, ctx):
-        embed = discord.Embed(
-            title = "Feel free to invite me!",
-            url = "https://discordapp.com/api/oauth2/authorize?client_id=606307707334426654&permissions=8&scope=bot",
-            color = self.blurple
-        )
-        await ctx.send(embed = embed)
+            with open(r"PATHHERE\WumpusSuggester\prefixes.json", "w") as f:
+                json.dump(prefixes, f, indent = 4)
 
-    @commands.command()
-    async def support(self, ctx):
-        embed = discord.Embed(
-            title = "Feel free to join the support server!",
-            url = "https://discord.gg/r6e3CNq",
-            color = self.blurple
-        )
-        await ctx.send(embed = embed)
-
-    #Ping command
-    @commands.command()
-    async def ping(self, ctx):
-        embed = discord.Embed(
-            title = f"Pong! {round(self.bot.latency * 1000)} ms",
-            color = self.blurple
-        )
-        await ctx.send(embed = embed)
-
-    #Leave command
-    @commands.command()
-    @commands.has_permissions(manage_guild = True)
-    async def leave(self, ctx):
-        embed = discord.Embed(
-            title = "Leave",
-            description = "I have left this server, please let the devs know why you wanted to remove the bot by joining the [Support Server](https://discordapp.com/invite/tjA5ssJ).",
-            color = self.errorcolor
-        )
-        await ctx.send(embed = embed)
-        await ctx.guild.leave()
-
-    @commands.command()
-    async def github(self, ctx):
-        embed = discord.Embed(
-            title = "Feel free to view the github!",
-            url = "https://github.com/xPolar/WumpusSuggester",
-            color = self.blurple
-        )
-        await ctx.send(embed = embed)
-
-    @leave.error
-    async def leave_error(self, ctx, error):
+    @prefix.error
+    async def prefix_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
                 title = "Missing Permissions",
                 description = "You are missing the **Manage Server** permission!",
                 color = self.errorcolor
             )
-            await ctx.send(embed = embed, delete_after = 5.0)
+            await ctx.send(embed = embed)
             await ctx.message.delete()
 
+    #Ping command
+    @commands.command()
+    async def ping(self, ctx):
+        """
+        Check the bots current ping.
+        """
+        embed = discord.Embed(
+            title = f"Pong!",
+            description = f"{round(self.bot.latency * 1000)} ms",
+            color = self.blurple
+        )
+        await ctx.send(embed = embed)
+
+    #Github command
+    @commands.command()
+    async def github(self, ctx):
+        """
+        Get a link to the github.
+        """
+        embed = discord.Embed(
+            title = f"Feel free to check out the github!",
+            url = "https://github.com/xPolar/WumpusSuggester",
+            color = self.blurple
+        )
+        await ctx.send(embed = embed)
+
+    #Support command
+    @commands.command()
+    async def support(self, ctx):
+        """
+        Get a link to the support server.
+        """
+        embed = discord.Embed(
+            title = f"Feel free to join our support server!",
+            url = "https://discord.gg/gkAKatd",
+            color = self.blurple
+        )
+        await ctx.send(embed = embed)
+
+    #Invite command
+    @commands.command()
+    async def invite(self, ctx):
+        """
+        Get a link to invite the bot.
+        """
+        embed = discord.Embed(
+            title = f"Feel free to invite me!",
+            url = "https://discordapp.com/api/oauth2/authorize?client_id=606307707334426654&permissions=8&scope=bot",
+            color = self.blurple
+        )
+        await ctx.send(embed = embed)
+
 def setup(bot):
-    bot.add_cog(other(bot))
+    bot.add_cog(Other(bot))

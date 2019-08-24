@@ -10,7 +10,7 @@ def get_prefix(bot, message):
     if message.guild == None:
         pass
     else:
-        with open(r"PREFIXESJSONFILEPATHHERE", "r") as f:
+        with open(r"PATHHERE\WumpusSuggester\Data\prefixes.json", "r") as f:
             prefixes = json.load(f)
         if str(message.guild.id) not in prefixes:
             return commands.when_mentioned_or("s!")(bot, message)
@@ -45,6 +45,9 @@ def owner(ctx):
 @bot.command()
 @commands.check(owner)
 async def restart(ctx):
+    """
+    Restart the bot.
+    """
     print("\nRestarting...")
     restarting = discord.Embed(
         title = "Restarting...",
@@ -56,7 +59,7 @@ async def restart(ctx):
         restarting.add_field(name = f"{cog}", value = "🔁 Restarted!")
         await msg.edit(embed = restarting)
     print("All cogs loaded.\nRestarting the bot...")
-    await bot.change_presence(activity = discord.Game(f"b!help | Conveying suggestions from {(len(bot.users))} suggesters!"))
+    await bot.change_presence(activity = discord.Game(f"s!help | Conveying suggestions from {(len(bot.users))} suggesters!"))
     print(f"Restarted succesfully!\nServer Count - {len(bot.guilds)}\nUser Count - {len(bot.users)}")
     await asyncio.sleep(3)
     await msg.delete()
@@ -78,7 +81,7 @@ async def on_command_error(ctx, error):
 @bot.event
 async def on_ready():
     print("All cogs loaded.")
-    await bot.change_presence(activity = discord.Game(f"b!help | Conveying suggestions from {(len(bot.users))} suggesters!"))
+    await bot.change_presence(activity = discord.Game(f"s!help | Conveying suggestions from {(len(bot.users))} suggesters!"))
     print(f"The bot has been started!\nServer Count - {len(bot.guilds)}\nUser Count - {len(bot.users)}")
 
 #Starts bot
