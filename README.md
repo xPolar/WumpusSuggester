@@ -8,7 +8,7 @@
 
 - [Why isn't the bot approving my suggestion?](https://github.com/xPolar/WumpusSuggester#suggestion-not-found)
 
-- [Selfhosting](https://github.com/xPolar/WumpusMod#selfhosting)
+- [Selfhosting](https://github.com/xPolar/WumpusSuggester#selfhosting)
 
 # Important Links
 - [Invite Link](https://discordapp.com/api/oauth2/authorize?client_id=606307707334426654&permissions=8&scope=bot)
