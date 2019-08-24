@@ -13,7 +13,7 @@
 # Important Links
 - [Invite Link](https://discordapp.com/api/oauth2/authorize?client_id=606307707334426654&permissions=8&scope=bot)
 
-- [Support Server](https://discord.gg/tjA5ssJ)
+- [Support Server](https://discord.gg/gkAKatd)
 
 # Commands
 WumpusSuggester's default prefix is `s!`
@@ -55,4 +55,4 @@ WumpusSuggester's default prefix is `s!`
 To approve / deny or do anything to a suggestion you **must** use the accept / deny commands in the suggestion channel.
 
 # Selfhosting
-**Selfhosting for WumpusSuggester is allowed but support will not be provided, if you break the bot do not expect for the support team to fix it.**
+**Selfhosting is allowed and supported!**
