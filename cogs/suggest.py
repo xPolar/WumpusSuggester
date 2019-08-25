@@ -128,7 +128,7 @@ class Suggest(commands.Cog):
         else:
             staff_role_id = staff_roles[str(ctx.message.guild.id)]
             staff_role = discord.utils.get(ctx.message.author.roles, id = staff_role_id)
-            if staff_role == None:
+            if staff_role == None and ctx.message.author.guild_permissions.administrator == False:
                 embed = discord.Embed(
                     title = "Approve Error",
                     description = f"You are missing the following role: <@{staff_role_id}>!",
@@ -284,7 +284,7 @@ class Suggest(commands.Cog):
         else:
             staff_role_id = staff_roles[str(ctx.message.guild.id)]
             staff_role = discord.utils.get(ctx.message.author.roles, id = staff_role_id)
-            if staff_role == None:
+            if staff_role == None and ctx.message.author.guild_permissions.administrator == False:
                 embed = discord.Embed(
                     title = "Deny Error",
                     description = f"You are missing the following role: <@{staff_role_id}>!",
@@ -440,7 +440,7 @@ class Suggest(commands.Cog):
         else:
             staff_role_id = staff_roles[str(ctx.message.guild.id)]
             staff_role = discord.utils.get(ctx.message.author.roles, id = staff_role_id)
-            if staff_role == None:
+            if staff_role == None and ctx.message.author.guild_permissions.administrator == False:
                 embed = discord.Embed(
                     title = "Consider Error",
                     description = f"You are missing the following role: <@{staff_role_id}>!",
@@ -596,7 +596,7 @@ class Suggest(commands.Cog):
         else:
             staff_role_id = staff_roles[str(ctx.message.guild.id)]
             staff_role = discord.utils.get(ctx.message.author.roles, id = staff_role_id)
-            if staff_role == None:
+            if staff_role == None and ctx.message.author.guild_permissions.administrator == False:
                 embed = discord.Embed(
                     title = "Implement Error",
                     description = f"You are missing the following role: <@{staff_role_id}>!",

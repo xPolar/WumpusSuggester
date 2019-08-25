@@ -176,7 +176,7 @@ class Other(commands.Cog):
         Set the servers prefix.
         """
         if ctx.message.author.id == ctx.guild.owner.id:
-            with open(r"PATHHERE\WumpusSuggester\prefixes.json", "r") as f:
+            with open(r"/root/WumpusSuggester/Data/prefixes.json", "r") as f:
                 prefixes = json.load(f)
 
             prefixes[str(ctx.guild.id)] = prefix
@@ -187,7 +187,7 @@ class Other(commands.Cog):
             )
             await ctx.send(embed = embed)
 
-            with open(r"PATHHERE\WumpusSuggester\prefixes.json", "w") as f:
+            with open(r"/root/WumpusSuggester/Data/prefixes.json", "w") as f:
                 json.dump(prefixes, f, indent = 4)
 
     @prefix.error
