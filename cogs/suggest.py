@@ -23,7 +23,7 @@ class Suggest(commands.Cog):
             embed = discord.Embed(
                 title = "Suggestion Error",
                 description = "Please provide a suggestion!",
-                color = self.errocolor
+                color = self.errorcolor
             )
             await ctx.send(embed = embed, delete_after = 5.0)
         else:
@@ -929,7 +929,7 @@ class Suggest(commands.Cog):
             embed = discord.Embed(
                 title = "Suggestion Channel Error",
                 description = "Please provide a channel!",
-                color = self.errocolor
+                color = self.errorcolor
             )
             await ctx.send(embed = embed)
         else:
@@ -966,7 +966,7 @@ class Suggest(commands.Cog):
             embed = discord.Embed(
                 title = "Suggestion Log Channel Error",
                 description = "Please provide a channel!",
-                color = self.errocolor
+                color = self.errorcolor
             )
             await ctx.send(embed = embed)
         else:
@@ -1003,7 +1003,7 @@ class Suggest(commands.Cog):
             embed = discord.Embed(
                 title = "Staff Role Error",
                 description = "Please provide a role!",
-                color = self.errocolor
+                color = self.errorcolor
             )
             await ctx.send(embed = embed)
         else:
