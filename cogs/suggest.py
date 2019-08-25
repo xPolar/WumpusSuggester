@@ -70,6 +70,8 @@ class Suggest(commands.Cog):
                 )
                 embed.set_footer(text = f"Suggestion ID {msg.id}")
                 await msg.edit(embed = embed)
+                await msg.add_reaction("⬆")
+                await msg.add_reaction("⬇")
                 if str(ctx.message.guild.id) in suggestion_log_channels:
                     suggestion_log_channel = suggestion_log_channels[str(ctx.message.guild.id)]
                     suggestion_log_channel = discord.utils.get(ctx.guild.text_channels, id = suggestion_log_channel)
