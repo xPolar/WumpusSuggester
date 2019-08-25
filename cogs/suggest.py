@@ -131,7 +131,7 @@ class Suggest(commands.Cog):
             if staff_role == None:
                 embed = discord.Embed(
                     title = "Approve Error",
-                    description = f"You are missing the following role {staff_role.mention}!",
+                    description = f"You are missing the following role: <@{staff_role_id}>!",
                     color = self.errorcolor
                 )
                 await ctx.send(embed = embed)
@@ -287,7 +287,7 @@ class Suggest(commands.Cog):
             if staff_role == None:
                 embed = discord.Embed(
                     title = "Deny Error",
-                    description = f"You are missing the following role: {staff_role.mention}!",
+                    description = f"You are missing the following role: <@{staff_role_id}>!",
                     color = self.errorcolor
                 )
                 await ctx.send(embed = embed)
@@ -443,7 +443,7 @@ class Suggest(commands.Cog):
             if staff_role == None:
                 embed = discord.Embed(
                     title = "Consider Error",
-                    description = f"You are missing the following role: {staff_role.mention}!",
+                    description = f"You are missing the following role: <@{staff_role_id}>!",
                     color = self.errorcolor
                 )
                 await ctx.send(embed = embed)
@@ -599,7 +599,7 @@ class Suggest(commands.Cog):
             if staff_role == None:
                 embed = discord.Embed(
                     title = "Implement Error",
-                    description = f"You are missing the following role: {staff_role.mention}!",
+                    description = f"You are missing the following role: <@{staff_role_id}>!",
                     color = self.errorcolor
                 )
                 await ctx.send(embed = embed)
